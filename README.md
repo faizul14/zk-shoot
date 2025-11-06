@@ -1,11 +1,11 @@
-# MYnyak Engsel
+# ZK Shoot
 
 <!-- ![banner](bnr.png) -->
 
 CLI client for a certain Indonesian mobile internet service provider.
 
 # How to get API Key
-Chat telegram bot [@fykxt_bot](https://t.me/fykxt_bot) with message `/viewkey`. Copy the API key.
+<!-- Chat telegram bot [@fykxt_bot](https://t.me/fykxt_bot) with message `/viewkey`. Copy the API key. -->
 
 # How to run with TERMUX
 1. Update & Upgrade Termux
@@ -46,4 +46,4 @@ By using this tool, the user agrees to comply with all applicable laws and regul
 
 ## Contact
 
-contact@mashu.lol
+ -- 
