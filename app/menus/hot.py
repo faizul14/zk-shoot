@@ -1,4 +1,6 @@
 import requests
+import json
+
 
 from app.client.engsel import get_family, get_package_details
 from app.menus.package import show_package_details
@@ -83,14 +85,17 @@ def show_hot_menu2():
         print("===================🔥 Paket  Hot 2 🔥==================")
         print("=======================================================")
         
-        url = "https://me.mashu.lol/pg-hot2.json"
-        response = requests.get(url, timeout=30)
-        if response.status_code != 200:
-            print("Gagal mengambil data hot package.")
-            pause()
-            return None
+        # url = "https://me.mashu.lol/pg-hot2.json"
+        # url = "https://me.mashu.lol/pg-hot2.json"
+        # response = requests.get(url, timeout=30)
+        # if response.status_code != 200:
+        #     print("Gagal mengambil data hot package.")
+        #     pause()
+        #     return None
 
-        hot_packages = response.json()
+        # hot_packages = response.json()
+        with open("hot_data/hot22.json", "r", encoding="utf-8") as f:
+            hot_packages = json.load(f)
 
         for idx, p in enumerate(hot_packages):
             print(f"{idx + 1}. {p['name']}\n   Harga: {p['price']}")

@@ -575,7 +575,6 @@ def get_notifications(
     if isinstance(res, dict) and res.get("status") != "SUCCESS":
         print("Error getting notifications:", res.get("error", "Unknown error"))
         return None
-        
     return res
 
 def get_notification_detail(

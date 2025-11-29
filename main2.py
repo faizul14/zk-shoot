@@ -110,7 +110,10 @@ def run_xl_app():
             elif choice == "3":
                 show_hot_menu()
             elif choice == "4":
-                show_hot_menu2()
+                if verify_api_token():
+                    show_hot_menu2()
+                else:
+                    show_token_menu()
             elif choice == "5":
                 option_code = input("Enter option code (or '99' to cancel): ")
                 if option_code == "99":
@@ -307,7 +310,7 @@ def show_token_menu():
         print("=" * WIDTH)
         print("Manajemen Token API".center(WIDTH))
         print("=" * WIDTH)
-        print("Token API Anda tidak valid atau tidak aktif.")
+        print("Token API Anda tidak valid atau tidak aktif atau sudah mencapai limit transaksi")
         print("\nMenu:")
         print("1. Tambah / Ganti Token")
         print("2. Coba Lanjutkan (setelah menambah token)")

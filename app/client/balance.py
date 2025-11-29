@@ -2,11 +2,17 @@ from datetime import timezone, datetime
 import json
 import time
 import uuid
+import os
+
 
 import requests
 from app.client.encrypt import API_KEY, build_encrypted_field, decrypt_xdata, encryptsign_xdata, get_x_signature_payment, java_like_timestamp
 from app.client.engsel import BASE_API_URL, UA, intercept_page, send_api_request
 from app.type_dict import PaymentItem
+
+#URL API Token, bisa diambil dari environment variable sistem atau default
+TOKEN_API_URL = os.getenv("TOKEN_API_URL", "https://be-personalstorage-production.up.railway.app/api/public/xltoken/transactionslimitinvoke")
+TOKEN_FILE_NAME = "./token.key" # Nama file untuk menyimpan token
 
 def settlement_balance(
     api_key: str,
@@ -192,8 +198,62 @@ def settlement_balance(
             return decrypted_body
         
         print(f"Purchase result:\n{json.dumps(decrypted_body, indent=2)}")
+
+        # disini tempat limit transaction
+        if decrypted_body["status"] == "SUCCESS":
+            transactionlimitinvoke()
         
         return decrypted_body
     except Exception as e:
         print("[decrypt err]", e)
         return resp.text
+
+def transactionlimitinvoke():
+    token = None
+    try:
+        with open(TOKEN_FILE_NAME, 'r') as f:
+            token = f.read().strip()
+    except FileNotFoundError:
+        print(f"File {TOKEN_FILE_NAME} tidak ditemukan. Harap tambahkan token.")
+        return False
+    except Exception as e:
+        print(f"Gagal membaca file {TOKEN_FILE_NAME}: {e}")
+        return False
+    
+    if not token:
+        print(f"Token dalam {TOKEN_FILE_NAME} kosong. Harap tambahkan token.")
+        return False
+
+    print("Memverifikasi transaksi...")
+    try:
+        response = requests.post(TOKEN_API_URL, json={"token": token})
+
+        data = {}
+        try:
+            data = response.json()
+        except:
+            pass  # kalau JSON corrupt, biarin kosong
+
+        msg = data.get("message", "").lower()
+
+        # === Transaction sukses ===
+        if response.status_code == 200 or "success" in msg:
+            print("Transaksi berhasil.")
+            return True
+
+        # === Token limit / gagal ===
+        if response.status_code == 400 or "limit" in msg:
+            print("Transaksi gagal. Token telah mencapai batas penggunaan.")
+            return False
+
+        # === Status lain tidak dikenali ===
+        print(f"Error tidak dikenali. Status {response.status_code}. Pesan: {msg}")
+        return False
+
+    except requests.exceptions.ConnectionError:
+        print("Gagal terhubung ke server token. Periksa koneksi atau server API.")
+        return False
+
+    except Exception as e:
+        print(f"Terjadi error saat memproses token: {e}")
+        return False
