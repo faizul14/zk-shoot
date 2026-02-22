@@ -62,12 +62,12 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
     ]
     
     print_rule()
-    console.print(f"[bold white]Nama        :[/bold white] [bold cyan]{title}[/bold cyan]")
-    console.print(f"[bold white]Harga       :[/bold white] [bold green]Rp {price}[/bold green]")
-    console.print(f"[bold white]Payment For :[/bold white] {payment_for}")
-    console.print(f"[bold white]Masa Aktif  :[/bold white] {validity}")
-    console.print(f"[bold white]Point       :[/bold white] {package['package_option']['point']}")
-    console.print(f"[bold white]Plan Type   :[/bold white] {package['package_family']['plan_type']}")
+    console.print(f"[bold]Nama        :[/bold] [bold cyan]{title}[/bold cyan]")
+    console.print(f"[bold]Harga       :[/bold] [bold green]Rp {price}[/bold green]")
+    console.print(f"[bold]Payment For :[/bold] {payment_for}")
+    console.print(f"[bold]Masa Aktif  :[/bold] {validity}")
+    console.print(f"[bold]Point       :[/bold] {package['package_option']['point']}")
+    console.print(f"[bold]Plan Type   :[/bold] {package['package_family']['plan_type']}")
     print_rule()
     console.print(f"[dim]Family Code : {family_code}[/dim]")
     console.print(f"[dim]Parent Code : {parent_code}[/dim]")
@@ -75,8 +75,8 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
     benefits = package["package_option"]["benefits"]
     if benefits and isinstance(benefits, list):
         ben_table = make_table(
-            ("Nama",      "white",       "left"),
-            ("Item ID",   "dim white",   "left"),
+            ("Nama",      "",            "left"),
+            ("Item ID",   "dim",         "left"),
             ("Tipe",      "yellow",      "center"),
             ("Total",     "bold green",  "right"),
         )
@@ -106,8 +106,8 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                 data_type,
                 total_str,
             )
-        console.print("[bold white]Benefits:[/bold white]")
-        console.print(ben_table)
+        from rich.panel import Panel
+        console.print(Panel(ben_table, title="[bold cyan]🎁 Benefits[/bold cyan]", border_style="cyan", expand=False))
     print_rule()
     addons = get_addons(api_key, tokens, package_option_code)
     
@@ -147,27 +147,32 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
     
     in_package_detail_menu = True
     while in_package_detail_menu:
-        console.print("\n[bold cyan]⚙ Options:[/bold cyan]")
-        console.print("[bold cyan]1.[/bold cyan] Beli dengan Pulsa")
-        console.print("[bold cyan]2.[/bold cyan] Beli dengan E-Wallet")
-        console.print("[bold cyan]3.[/bold cyan] Bayar dengan QRIS")
-        console.print("[bold cyan]4.[/bold cyan] Pulsa + Decoy")
-        console.print("[bold cyan]5.[/bold cyan] Pulsa + Decoy V2")
-        console.print("[bold cyan]6.[/bold cyan] QRIS + Decoy (+1K)")
-        console.print("[bold cyan]7.[/bold cyan] QRIS + Decoy V2")
-        console.print("[bold cyan]8.[/bold cyan] Pulsa N kali")
+        opt_table = Table(box=box.SIMPLE, show_header=False, padding=(0, 2), expand=True)
+        opt_table.add_column("k", style="bold cyan", justify="right", no_wrap=True, width=4)
+        opt_table.add_column("v", justify="left")
+        opt_table.add_row("1.", "Beli dengan Pulsa")
+        opt_table.add_row("2.", "Beli dengan E-Wallet")
+        opt_table.add_row("3.", "Bayar dengan QRIS")
+        opt_table.add_row("4.", "Pulsa + Decoy")
+        opt_table.add_row("5.", "Pulsa + Decoy V2")
+        opt_table.add_row("6.", "QRIS + Decoy (+1K)")
+        opt_table.add_row("7.", "QRIS + Decoy V2")
+        opt_table.add_row("8.", "Pulsa N kali")
 
         if payment_for == "":
             payment_for = "BUY_PACKAGE"
         
         if payment_for == "REDEEM_VOUCHER":
-            console.print("[bold cyan]B.[/bold cyan] Ambil sebagai bonus (jika tersedia)")
-            console.print("[bold cyan]BA.[/bold cyan] Kirim bonus (jika tersedia)")
-            console.print("[bold cyan]L.[/bold cyan] Beli dengan Poin (jika tersedia)")
+            opt_table.add_row("B.",  "Ambil sebagai bonus (jika tersedia)")
+            opt_table.add_row("BA.", "Kirim bonus (jika tersedia)")
+            opt_table.add_row("L.",  "Beli dengan Poin (jika tersedia)")
         
         if option_order != -1:
-            console.print("[bold cyan]0.[/bold cyan] Tambah ke Bookmark")
-        console.print("[bold cyan]00.[/bold cyan] Kembali ke daftar paket")
+            opt_table.add_row("0.", "Tambah ke Bookmark")
+        opt_table.add_row("00.", "Kembali ke daftar paket")
+        
+        from rich.panel import Panel
+        console.print(Panel(opt_table, title="[bold cyan]⚙ Options[/bold cyan]", border_style="cyan", expand=False, width=45))
 
         choice = console.input("\n[bold cyan]Pilihan: [/bold cyan]") 
         if choice == "00":
@@ -610,9 +615,9 @@ def get_packages_by_family(
         clear_screen()
         console.print("\n[bold cyan]📋 Family Packages[/bold cyan]")
         print_rule()
-        console.print(f"[bold white]Family :[/bold white] [bold cyan]{data['package_family']['name']}[/bold cyan]  [dim]({family_code})[/dim]")
-        console.print(f"[bold white]Type   :[/bold white] {data['package_family']['package_family_type']}")
-        console.print(f"[bold white]Variant:[/bold white] {len(data['package_variants'])}")
+        console.print(f"[bold]Family :[/bold] [bold cyan]{data['package_family']['name']}[/bold cyan]  [dim]({family_code})[/dim]")
+        console.print(f"[bold]Type   :[/bold] {data['package_family']['package_family_type']}")
+        console.print(f"[bold]Variant:[/bold] {len(data['package_variants'])}")
         print_rule()
         
         package_variants = data["package_variants"]
@@ -625,9 +630,9 @@ def get_packages_by_family(
             variant_code = variant["package_variant_code"]
             variant_table = make_table(
                 ("No",    "bold cyan",  "right"),
-                ("Nama",  "white",      "left"),
+                ("Nama",  "",           "left"),
                 ("Harga", "bold green", "right"),
-                ("Kode",  "dim white",  "left"),
+                ("Kode",  "dim",        "left"),
                 title=f"Variant {variant_number}: {variant_name} ({variant_code})",
             )
             for option in variant["package_options"]:
@@ -648,7 +653,10 @@ def get_packages_by_family(
                     option["package_option_code"],
                 )
                 option_number += 1
-            console.print(variant_table)
+            from rich.panel import Panel
+            console.print(Panel(variant_table,
+                title=f"[bold cyan]Variant {variant_number}: {variant_name}[/bold cyan]",
+                border_style="cyan", expand=False))
             variant_number += 1
         print_rule()
         console.print("[bold cyan]00.[/bold cyan] Kembali ke menu utama")

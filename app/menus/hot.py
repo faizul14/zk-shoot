@@ -33,8 +33,8 @@ def show_hot_menu():
 
         table = make_table(
             ("No",      "bold cyan", "right"),
-            ("Family",  "white",     "left"),
-            ("Variant", "dim white", "left"),
+            ("Family",  "",          "left"),
+            ("Variant", "dim",       "left"),
             ("Option",  "yellow",    "left"),
         )
         for idx, p in enumerate(hot_packages):
@@ -44,7 +44,8 @@ def show_hot_menu():
                 p['variant_name'],
                 p['option_name'],
             )
-        console.print(table)
+        from rich.panel import Panel
+        console.print(Panel(table, title="[bold cyan]🔥 Daftar Paket Hot[/bold cyan]", border_style="cyan", expand=False))
         
         console.print("[bold cyan]00.[/bold cyan] Kembali ke menu utama")
         print_rule()
@@ -106,12 +107,13 @@ def show_hot_menu2():
 
         table = make_table(
             ("No",    "bold cyan",  "right"),
-            ("Nama",  "white",      "left"),
-            ("Harga", "bold green", "left"),
+            ("Nama",  "",           "left"),
+            ("Harga", "bold green", "right"),
         )
         for idx, p in enumerate(hot_packages):
             table.add_row(str(idx + 1), p['name'], str(p['price']))
-        console.print(table)
+        from rich.panel import Panel
+        console.print(Panel(table, title="[bold cyan]🔥 Daftar Paket Hot 2[/bold cyan]", border_style="cyan", expand=False))
         
         console.print("[bold cyan]00.[/bold cyan] Kembali ke menu utama")
         print_rule()

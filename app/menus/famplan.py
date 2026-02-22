@@ -76,7 +76,8 @@ def show_family_info(api_key: str, tokens: dict):
                 format_quota_byte(quota_allocated_byte),
                 f"{add_chances}/{total_add_chances}",
             )
-        console.print(table)
+        from rich.panel import Panel
+        console.print(Panel(table, title="[bold cyan]👨‍👩‍👦 Anggota Family Plan[/bold cyan]", border_style="cyan", expand=False))
         
         print_rule()
         console.print("[bold cyan]1.[/bold cyan] Change Member")

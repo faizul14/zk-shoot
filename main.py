@@ -49,14 +49,14 @@ def show_main_menu(profile):
     grid.add_row(
         "📱", 
         f"[bold cyan]{profile['number']}[/]", 
-        "[dim white]│[/]", 
+        "[dim]│[/]", 
         f"[bold yellow]{profile['subscription_type']}[/]"
     )
     grid.add_row(
         "💰", 
-        f"[dim white]Pulsa:[/] [bold green]Rp {profile['balance']}[/]", 
-        "[dim white]│[/]", 
-        f"[dim white]Aktif:[/] [bold white]{expired_at_dt}[/]"
+        f"[dim]Pulsa:[/] [bold green]Rp {profile['balance']}[/]", 
+        "[dim]│[/]", 
+        f"[dim]Aktif:[/] [bold]{expired_at_dt}[/]"
     )
     
     p_info = profile['point_info'].split('|')
@@ -66,14 +66,14 @@ def show_main_menu(profile):
     grid.add_row(
         "⭐", 
         f"[bold magenta]{p_left}[/]", 
-        "[dim white]│[/]" if p_right else "", 
+        "[dim]│[/]" if p_right else "", 
         f"[bold magenta]{p_right}[/]"
     )
 
     console.print(Panel(grid, title="[bold cyan]Dor MyXL[/bold cyan]", border_style="cyan", expand=False, width=62))
 
-    # ── Menu Table ───────────────────────────────────────────────
-    left_items = [
+    # ── Menu Card ────────────────────────────────────────────
+    all_items = [
         ("1",  "Login / Ganti Akun"),
         ("2",  "Lihat Paket Saya"),
         ("3",  "🔥 Beli Paket HOT"),
@@ -82,31 +82,39 @@ def show_main_menu(profile):
         ("6",  "Beli via Family Code"),
         ("7",  "Beli Semua (loop)"),
         ("8",  "Riwayat Transaksi"),
-    ]
-    right_items = [
-        ("9",   "Family Plan / Akrab"),
-        ("10",  "[WIP] Circle"),
-        ("11",  "Store Segments"),
-        ("12",  "Store Family List"),
-        ("13",  "Store Packages"),
-        ("14",  "Redeemables"),
-        ("00",  "Bookmark Paket"),
-        ("R",   "Register"),
-        ("N",   "Notifikasi"),
-        ("V",   "Validate MSISDN"),
-        ("99",  "[bold red]Tutup Aplikasi[/bold red]"),
+        ("9",  "Family Plan / Akrab"),
+        ("10", "[WIP] Circle"),
+        ("11", "Store Segments"),
+        ("12", "Store Family List"),
+        ("13", "Store Packages"),
+        ("14", "Redeemables"),
+        ("00", "Bookmark Paket"),
+        ("R",  "Register"),
+        ("N",  "Notifikasi"),
+        ("V",  "Validate MSISDN"),
+        ("99", "🚪 Tutup Aplikasi"),
     ]
 
-    def build_col(items):
-        t = Table(box=box.SIMPLE, show_header=False, padding=(0, 1),
-                  border_style="cyan", expand=False)
-        t.add_column("k", style="bold cyan",  justify="right",  no_wrap=True)
-        t.add_column("v", style="white",       justify="left")
-        for k, v in items:
-            t.add_row(f"{k}.", v)
-        return t
+    # Build inner table (no background color, no white style)
+    menu_table = Table(
+        box=box.SIMPLE,
+        show_header=False,
+        padding=(0, 2),
+        expand=True,
+    )
+    menu_table.add_column("k", style="bold cyan", justify="right", no_wrap=True, width=4)
+    menu_table.add_column("v", justify="left")   # NO style → inherits terminal fg
 
-    console.print(Columns([build_col(left_items), build_col(right_items)], equal=False, expand=False))
+    for k, v in all_items:
+        menu_table.add_row(f"{k}.", v)
+
+    console.print(Panel(
+        menu_table,
+        title="[bold cyan]Menu[/bold cyan]",
+        border_style="cyan",
+        expand=False,
+        width=45,
+    ))
 
 show_menu = True
 def main():

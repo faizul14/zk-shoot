@@ -86,7 +86,7 @@ def show_account_menu():
         else:
             table = make_table(
                 ("No",     "bold cyan",  "right"),
-                ("Nomor",  "white",      "left"),
+                ("Nomor",  "",           "left"),
                 ("Tipe",   "yellow",     "center"),
                 ("Status", "green",      "center"),
             )
@@ -95,7 +95,8 @@ def show_account_menu():
                 status = "[bold green]✅ AKTIF[/bold green]" if is_active else "[dim]–[/dim]"
                 sub_type = user.get("subscription_type", "-")
                 table.add_row(str(idx + 1), str(user.get("number", "")), sub_type, status)
-            console.print(table)
+            from rich.panel import Panel
+            console.print(Panel(table, title="[bold cyan]👥 Akun Tersimpan[/bold cyan]", border_style="cyan", expand=False))
 
         print_rule()
         console.print("[bold cyan]0[/bold cyan]: Tambah Akun  "

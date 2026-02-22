@@ -43,7 +43,7 @@ def show_notification_menu():
                 label_style = "dim"
             else:
                 status_text = "[bold yellow]UNREAD[/bold yellow]"
-                label_style = "bold white"
+                label_style = "bold"
                 unread_count += 1
 
             table.add_row(
@@ -53,7 +53,8 @@ def show_notification_menu():
                 f"[dim]{time_str}[/dim]",
             )
 
-        console.print(table)
+        from rich.panel import Panel
+        console.print(Panel(table, title="[bold cyan]🔔 Notifikasi[/bold cyan]", border_style="cyan", expand=False))
         console.print(f"[dim]Total: {len(notifications)} | [bold yellow]Unread: {unread_count}[/bold yellow][/dim]")
         print_rule()
 

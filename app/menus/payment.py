@@ -53,7 +53,8 @@ def show_transaction_history(api_key, tokens):
                     f"[{status_style}]{status}[/]",
                     f"[{pay_style}]{pay_status}[/]",
                 )
-            console.print(table)
+            from rich.panel import Panel
+            console.print(Panel(table, title="[bold cyan]💳 Riwayat Transaksi[/bold cyan]", border_style="cyan", expand=False))
 
         print_rule()
         console.print("[bold cyan]0.[/bold cyan] Refresh  |  [bold cyan]00.[/bold cyan] Kembali ke Menu Utama")

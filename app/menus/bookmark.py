@@ -24,8 +24,8 @@ def show_bookmark_menu():
         # Build Rich table of bookmarks
         table = make_table(
             ("No",      "bold cyan",  "right"),
-            ("Family",  "white",      "left"),
-            ("Variant", "dim white",  "left"),
+            ("Family",  "",           "left"),
+            ("Variant", "dim",        "left"),
             ("Option",  "yellow",     "left"),
         )
         for idx, bm in enumerate(bookmarks):
@@ -35,7 +35,8 @@ def show_bookmark_menu():
                 bm['variant_name'],
                 bm['option_name'],
             )
-        console.print(table)
+        from rich.panel import Panel
+        console.print(Panel(table, title="[bold cyan]📑 Bookmark Paket[/bold cyan]", border_style="cyan", expand=False))
         
         console.print("[dim]00[/dim] Kembali ke menu utama  |  [dim]000[/dim] Hapus Bookmark")
         print_rule()
