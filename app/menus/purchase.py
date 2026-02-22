@@ -2,6 +2,7 @@ import requests, time
 from random import randint
 from app.client.engsel import get_family, get_package_details, get_package
 from app.menus.util import pause
+from app.menus.ui import console, print_success, print_error, print_warning, print_info, print_rule, make_table
 from app.service.auth import AuthInstance
 from app.service.decoy import DecoyInstance
 from app.type_dict import PaymentItem
@@ -32,28 +33,28 @@ def purchase_by_family(
         )
         
         if not decoy_package_detail:
-            print("Failed to load decoy package details.")
+            print_error("Failed to load decoy package details.")
             pause()
             return False
         
         balance_treshold = decoy_package_detail["package_option"]["price"]
-        print(f"Pastikan sisa balance KURANG DARI Rp{balance_treshold}!!!")
+        print_warning(f"Pastikan sisa balance KURANG DARI Rp{balance_treshold}!!!")
         balance_answer = input("Apakah anda yakin ingin melanjutkan pembelian? (y/n): ")
         if balance_answer.lower() != "y":
-            print("Pembelian dibatalkan oleh user.")
+            print_warning("Pembelian dibatalkan oleh user.")
             pause()
             return None
     
     family_data = get_family(api_key, tokens, family_code)
     if not family_data:
-        print(f"Failed to get family data for code: {family_code}.")
+        print_error(f"Failed to get family data for code: {family_code}.")
         pause()
         return None
     
     family_name = family_data["package_family"]["name"]
     variants = family_data["package_variants"]
     
-    print("-------------------------------------------------------")
+    print_rule()
     successful_purchases = []
     packages_count = 0
     for variant in variants:
@@ -79,8 +80,7 @@ def purchase_by_family(
             option_price = option["price"]
             
             purchase_count += 1
-            print(f"Pruchase {purchase_count} of {packages_count}...")
-            print(f"Trying to buy: {variant_name} - {option_order}. {option_name} - {option['price']}")
+            print_info(f"Purchase {purchase_count}/{packages_count} → {variant_name} - {option_order}. {option_name} — Rp {option['price']}")
             
             payment_items = []
             
@@ -95,7 +95,7 @@ def purchase_by_family(
                     )
                     
                     if not decoy_package_detail:
-                        print("Failed to load decoy package details.")
+                        print_error("Failed to load decoy package details.")
                         pause()
                         return False
                 
@@ -109,8 +109,7 @@ def purchase_by_family(
                     None,
                 )
             except Exception as e:
-                print(f"Exception occurred while fetching package details: {e}")
-                print(f"Failed to get package details for {variant_name} - {option_name}. Skipping.")
+                print_error(f"Exception fetching package details: {e} — Skipping.")
                 continue
             
             payment_items.append(
@@ -161,7 +160,7 @@ def purchase_by_family(
                         error_msg_arr = error_msg.split("=")
                         valid_amount = int(error_msg_arr[1].strip())
                         
-                        print(f"Adjusted total amount to: {valid_amount}")
+                        print_info(f"Adjusted total amount to: {valid_amount}")
                         res = settlement_balance(
                             api_key,
                             tokens,
@@ -178,10 +177,10 @@ def purchase_by_family(
                             )
                             
                             if pause_on_success:
-                                print("Purchase successful!")
+                                print_success("Purchase successful!")
                                 pause()
                             else:
-                                print("Purchase successful!")
+                                print_success("Purchase successful!")
                         else:
                             error_msg = res.get("message", "")
                 else:
@@ -189,27 +188,28 @@ def purchase_by_family(
                         f"{variant_name}|{option_order}. {option_name} - {option_price}"
                     )
                     if pause_on_success:
-                        print("Purchase successful!")
+                        print_success("Purchase successful!")
                         pause()
                     else:
-                        print("Purchase successful!")
+                        print_success("Purchase successful!")
 
             except Exception as e:
-                print(f"Exception occurred while creating order: {e}")
+                print_error(f"Exception occurred while creating order: {e}")
                 res = None
-            print("-------------------------------------------------------")
+            print_rule()
             should_delay = error_msg == "" or "Failed call ipaas purchase" in error_msg
             if delay_seconds > 0 and should_delay:
-                print(f"Waiting for {delay_seconds} seconds before next purchase...")
+                print_info(f"Waiting {delay_seconds}s before next purchase...")
                 time.sleep(delay_seconds)
                 
-    print(f"Family: {family_name}\nSuccessful: {len(successful_purchases)}")
+    print_rule()
+    console.print(f"[bold white]Family:[/bold white] {family_name}  [bold green]Berhasil: {len(successful_purchases)}[/bold green]")
     if len(successful_purchases) > 0:
-        print("-" * 55)
-        print("Successful purchases:")
-        for purchase in successful_purchases:
-            print(f"- {purchase}")
-    print("-" * 55)
+        t = make_table(("#", "bold cyan", "right"), ("Pembelian", "white", "left"))
+        for i, p in enumerate(successful_purchases, 1):
+            t.add_row(str(i), p)
+        console.print(t)
+    print_rule()
     pause()
 
 def purchase_n_times(
@@ -239,21 +239,21 @@ def purchase_n_times(
         )
         
         if not decoy_package_detail:
-            print("Failed to load decoy package details.")
+            print_error("Failed to load decoy package details.")
             pause()
             return False
         
         balance_treshold = decoy_package_detail["package_option"]["price"]
-        print(f"Pastikan sisa balance KURANG DARI Rp{balance_treshold}!!!")
+        print_warning(f"Pastikan sisa balance KURANG DARI Rp{balance_treshold}!!!")
         balance_answer = input("Apakah anda yakin ingin melanjutkan pembelian? (y/n): ")
         if balance_answer.lower() != "y":
-            print("Pembelian dibatalkan oleh user.")
+            print_warning("Pembelian dibatalkan oleh user.")
             pause()
             return None
     
     family_data = get_family(api_key, tokens, family_code)
     if not family_data:
-        print(f"Failed to get family data for code: {family_code}.")
+        print_error(f"Failed to get family data for code: {family_code}.")
         pause()
         return None
     family_name = family_data["package_family"]["name"]
@@ -264,7 +264,7 @@ def purchase_n_times(
             target_variant = variant
             break
     if not target_variant:
-        print(f"Variant code {variant_code} not found in family {family_name}.")
+        print_error(f"Variant code {variant_code} not found in family {family_name}.")
         pause()
         return None
     target_option = None
@@ -273,17 +273,16 @@ def purchase_n_times(
             target_option = option
             break
     if not target_option:
-        print(f"Option order {option_order} not found in variant {target_variant['name']}.")
+        print_error(f"Option order {option_order} not found in variant {target_variant['name']}.")
         pause()
         return None
     option_name = target_option["name"]
     option_price = target_option["price"]
-    print("-------------------------------------------------------")
+    print_rule()
     successful_purchases = []
     
     for i in range(n):
-        print(f"Pruchase {i + 1} of {n}...")
-        print(f"Trying to buy: {target_variant['name']} - {option_order}. {option_name} - {option_price}")
+        print_info(f"Purchase {i + 1}/{n} → {target_variant['name']} - {option_order}. {option_name} — Rp {option_price}")
         
         api_key = AuthInstance.api_key
         tokens: dict = AuthInstance.get_active_tokens() or {}
@@ -301,7 +300,7 @@ def purchase_n_times(
                 )
                 
                 if not decoy_package_detail:
-                    print("Failed to load decoy package details.")
+                    print_error("Failed to load decoy package details.")
                     pause()
                     return False
             
@@ -315,8 +314,7 @@ def purchase_n_times(
                 None,
             )
         except Exception as e:
-            print(f"Exception occurred while fetching package details: {e}")
-            print(f"Failed to get package details for {target_variant['name']} - {option_name}. Skipping.")
+            print_error(f"Exception fetching package: {e} — Skipping.")
             continue
         
         payment_items.append(
@@ -365,7 +363,7 @@ def purchase_n_times(
                     error_msg_arr = error_msg.split("=")
                     valid_amount = int(error_msg_arr[1].strip())
                     
-                    print(f"Adjusted total amount to: {valid_amount}")
+                    print_info(f"Adjusted total amount to: {valid_amount}")
                     res = settlement_balance(
                         api_key,
                         tokens,
@@ -381,35 +379,37 @@ def purchase_n_times(
                         )
                         
                         if pause_on_success:
-                            print("Purchase successful!")
+                            print_success("Purchase successful!")
                             pause()
                         else:
-                            print("Purchase successful!")
+                            print_success("Purchase successful!")
             else:
                 successful_purchases.append(
                     f"{target_variant['name']}|{option_order}. {option_name} - {option_price}"
                 )
                 if pause_on_success:
-                    print("Purchase successful!")
+                    print_success("Purchase successful!")
                     pause()
                 else:
-                    print("Purchase successful!")
+                    print_success("Purchase successful!")
         except Exception as e:
-            print(f"Exception occurred while creating order: {e}")
+            print_error(f"Exception occurred while creating order: {e}")
             res = None
-        print("-------------------------------------------------------")
+        print_rule()
 
         if delay_seconds > 0 and i < n - 1:
-            print(f"Waiting for {delay_seconds} seconds before next purchase...")
+            print_info(f"Waiting {delay_seconds}s before next purchase...")
             time.sleep(delay_seconds)
 
-    print(f"Total successful purchases {len(successful_purchases)}/{n} for:\nFamily: {family_name}\nVariant: {target_variant['name']}\nOption: {option_order}. {option_name} - {option_price}")
+    print_rule()
+    console.print(f"[bold white]Family: {family_name}  Variant: {target_variant['name']}  Option: {option_order}. {option_name}[/bold white]")
+    console.print(f"[bold green]Total berhasil: {len(successful_purchases)}/{n}[/bold green]")
     if len(successful_purchases) > 0:
-        print("-------------------------------------------------------")
-        print("Successful purchases:")
-        for idx, purchase in enumerate(successful_purchases):
-            print(f"{idx + 1}. {purchase}")
-    print("-------------------------------------------------------")
+        t = make_table(("#", "bold cyan", "right"), ("Pembelian", "white", "left"))
+        for i, p in enumerate(successful_purchases, 1):
+            t.add_row(str(i), p)
+        console.print(t)
+    print_rule()
     pause()
     return True
 
@@ -437,23 +437,23 @@ def purchase_n_times_by_option_code(
         )
         
         if not decoy_package_detail:
-            print("Failed to load decoy package details.")
+            print_error("Failed to load decoy package details.")
             pause()
             return False
         
         balance_treshold = decoy_package_detail["package_option"]["price"]
-        print(f"Pastikan sisa balance KURANG DARI Rp{balance_treshold}!!!")
+        print_warning(f"Pastikan sisa balance KURANG DARI Rp{balance_treshold}!!!")
         balance_answer = input("Apakah anda yakin ingin melanjutkan pembelian? (y/n): ")
         if balance_answer.lower() != "y":
-            print("Pembelian dibatalkan oleh user.")
+            print_warning("Pembelian dibatalkan oleh user.")
             pause()
             return None
     
-    print("-------------------------------------------------------")
+    print_rule()
     successful_purchases = []
     
     for i in range(n):
-        print(f"Pruchase {i + 1} of {n}...")
+        print_info(f"Purchase {i + 1}/{n}...")
         
         api_key = AuthInstance.api_key
         tokens: dict = AuthInstance.get_active_tokens() or {}
@@ -471,7 +471,7 @@ def purchase_n_times_by_option_code(
                 )
                 
                 if not decoy_package_detail:
-                    print("Failed to load decoy package details.")
+                    print_error("Failed to load decoy package details.")
                     pause()
                     return False
             
@@ -481,7 +481,7 @@ def purchase_n_times_by_option_code(
                 option_code,
             )
         except Exception as e:
-            print(f"Exception occurred while fetching package details: {e}")
+            print_error(f"Exception fetching package: {e} — Skipping.")
             continue
         
         payment_items.append(
@@ -530,7 +530,7 @@ def purchase_n_times_by_option_code(
                     error_msg_arr = error_msg.split("=")
                     valid_amount = int(error_msg_arr[1].strip())
                     
-                    print(f"Adjusted total amount to: {valid_amount}")
+                    print_info(f"Adjusted total amount to: {valid_amount}")
                     res = settlement_balance(
                         api_key,
                         tokens,
@@ -546,34 +546,35 @@ def purchase_n_times_by_option_code(
                         )
                         
                         if pause_on_success:
-                            print("Purchase successful!")
+                            print_success("Purchase successful!")
                             pause()
                         else:
-                            print("Purchase successful!")
+                            print_success("Purchase successful!")
             else:
                 successful_purchases.append(
                     f"Purchase {i + 1}"
                 )
                 if pause_on_success:
-                    print("Purchase successful!")
+                    print_success("Purchase successful!")
                     pause()
                 else:
-                    print("Purchase successful!")
+                    print_success("Purchase successful!")
         except Exception as e:
-            print(f"Exception occurred while creating order: {e}")
+            print_error(f"Exception occurred while creating order: {e}")
             res = None
-        print("-------------------------------------------------------")
+        print_rule()
 
         if delay_seconds > 0 and i < n - 1:
-            print(f"Waiting for {delay_seconds} seconds before next purchase...")
+            print_info(f"Waiting {delay_seconds}s before next purchase...")
             time.sleep(delay_seconds)
 
-    print(f"Total successful purchases {len(successful_purchases)}/{n}")
+    print_rule()
+    console.print(f"[bold green]Total berhasil: {len(successful_purchases)}/{n}[/bold green]")
     if len(successful_purchases) > 0:
-        print("-------------------------------------------------------")
-        print("Successful purchases:")
-        for idx, purchase in enumerate(successful_purchases):
-            print(f"{idx + 1}. {purchase}")
-    print("-------------------------------------------------------")
+        t = make_table(("#", "bold cyan", "right"), ("Pembelian", "white", "left"))
+        for i, p in enumerate(successful_purchases, 1):
+            t.add_row(str(i), p)
+        console.print(t)
+    print_rule()
     pause()
     return True

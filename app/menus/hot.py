@@ -6,6 +6,7 @@ from app.client.engsel import get_family, get_package_details
 from app.menus.package import show_package_details
 from app.service.auth import AuthInstance
 from app.menus.util import clear_screen, pause
+from app.menus.ui import console, print_success, print_error, print_warning, print_info, print_rule, make_table
 from app.client.ewallet import show_multipayment
 from app.client.qris import show_qris_payment
 from app.client.balance import settlement_balance
@@ -18,26 +19,36 @@ def show_hot_menu():
     in_bookmark_menu = True
     while in_bookmark_menu:
         clear_screen()
-        print("=======================================================")
-        print("====================🔥 Paket  Hot 🔥===================")
-        print("=======================================================")
+        console.print("\n[bold red]🔥 Paket Hot[/bold red]")
+        print_rule()
         
         url = "https://me.mashu.lol/pg-hot.json"
         response = requests.get(url, timeout=30)
         if response.status_code != 200:
-            print("Gagal mengambil data hot package.")
+            print_error("Gagal mengambil data hot package.")
             pause()
             return None
 
         hot_packages = response.json()
 
+        table = make_table(
+            ("No",      "bold cyan", "right"),
+            ("Family",  "white",     "left"),
+            ("Variant", "dim white", "left"),
+            ("Option",  "yellow",    "left"),
+        )
         for idx, p in enumerate(hot_packages):
-            print(f"{idx + 1}. {p['family_name']} - {p['variant_name']} - {p['option_name']}")
-            print("-------------------------------------------------------")
+            table.add_row(
+                str(idx + 1),
+                p['family_name'],
+                p['variant_name'],
+                p['option_name'],
+            )
+        console.print(table)
         
-        print("00. Kembali ke menu utama")
-        print("-------------------------------------------------------")
-        choice = input("Pilih paket (nomor): ")
+        console.print("[bold cyan]00.[/bold cyan] Kembali ke menu utama")
+        print_rule()
+        choice = console.input("[bold cyan]Pilih paket (nomor): [/bold cyan]")
         if choice == "00":
             in_bookmark_menu = False
             return None
@@ -48,7 +59,7 @@ def show_hot_menu():
             
             family_data = get_family(api_key, tokens, family_code, is_enterprise)
             if not family_data:
-                print("Gagal mengambil data family.")
+                print_error("Gagal mengambil data family.")
                 pause()
                 continue
             
@@ -70,7 +81,7 @@ def show_hot_menu():
                 show_package_details(api_key, tokens, option_code, is_enterprise)            
             
         else:
-            print("Input tidak valid. Silahkan coba lagi.")
+            print_error("Input tidak valid. Silahkan coba lagi.")
             pause()
             continue
 
@@ -81,29 +92,30 @@ def show_hot_menu2():
     in_bookmark_menu = True
     while in_bookmark_menu:
         clear_screen()
-        print("=======================================================")
-        print("===================🔥 Paket  Hot 2 🔥==================")
-        print("=======================================================")
+        console.print("\n[bold red]🔥 Paket Hot 2[/bold red]")
+        print_rule()
         
-        # url = "https://me.mashu.lol/pg-hot2.json"
         url = "https://me.mashu.lol/pg-hot2.json"
         response = requests.get(url, timeout=30)
         if response.status_code != 200:
-            print("Gagal mengambil data hot package.")
+            print_error("Gagal mengambil data hot package.")
             pause()
             return None
 
         hot_packages = response.json()
-        # with open("hot_data/hot22.json", "r", encoding="utf-8") as f:
-        #     hot_packages = json.load(f)
 
+        table = make_table(
+            ("No",    "bold cyan",  "right"),
+            ("Nama",  "white",      "left"),
+            ("Harga", "bold green", "left"),
+        )
         for idx, p in enumerate(hot_packages):
-            print(f"{idx + 1}. {p['name']}\n   Harga: {p['price']}")
-            print("-------------------------------------------------------")
+            table.add_row(str(idx + 1), p['name'], str(p['price']))
+        console.print(table)
         
-        print("00. Kembali ke menu utama")
-        print("-------------------------------------------------------")
-        choice = input("Pilih paket (nomor): ")
+        console.print("[bold cyan]00.[/bold cyan] Kembali ke menu utama")
+        print_rule()
+        choice = console.input("[bold cyan]Pilih paket (nomor): [/bold cyan]")
         if choice == "00":
             in_bookmark_menu = False
             return None
@@ -111,7 +123,7 @@ def show_hot_menu2():
             selected_package = hot_packages[int(choice) - 1]
             packages = selected_package.get("packages", [])
             if len(packages) == 0:
-                print("Paket tidak tersedia.")
+                print_warning("Paket tidak tersedia.")
                 pause()
                 continue
             
@@ -129,7 +141,7 @@ def show_hot_menu2():
                 
                 # Force failed when one of the package detail is None
                 if not package_detail:
-                    print(f"Gagal mengambil detail paket untuk {package['family_code']}.")
+                    print_error(f"Gagal mengambil detail paket untuk {package['family_code']}.")
                     return None
                 
                 payment_items.append(
@@ -144,11 +156,12 @@ def show_hot_menu2():
                 )
             
             clear_screen()
-            print("=======================================================")
-            print(f"Name: {selected_package['name']}")
-            print(f"Price: {selected_package['price']}")
-            print(f"Detail: {selected_package['detail']}")
-            print("=======================================================")
+            console.print("\n[bold cyan]📦 Detail Paket Hot[/bold cyan]")
+            print_rule()
+            console.print(f"[bold white]Nama  :[/bold white] {selected_package['name']}")
+            console.print(f"[bold green]Harga :[/bold green] {selected_package['price']}")
+            console.print(f"[dim]Detail:[/dim] {selected_package['detail']}")
+            print_rule()
             
             payment_for = selected_package.get("payment_for", "BUY_PACKAGE")
             ask_overwrite = selected_package.get("ask_overwrite", False)
@@ -158,19 +171,19 @@ def show_hot_menu2():
 
             in_payment_menu = True
             while in_payment_menu:
-                print("Pilih Metode Pembelian:")
-                print("1. Balance")
-                print("2. E-Wallet")
-                print("3. QRIS")
-                print("00. Kembali ke menu sebelumnya")
+                console.print("\n[bold cyan]Pilih Metode Pembelian:[/bold cyan]")
+                console.print("[bold cyan]1.[/bold cyan] Balance")
+                console.print("[bold cyan]2.[/bold cyan] E-Wallet")
+                console.print("[bold cyan]3.[/bold cyan] QRIS")
+                console.print("[bold cyan]00.[/bold cyan] Kembali ke menu sebelumnya")
                 
-                input_method = input("Pilih metode (nomor): ")
+                input_method = console.input("[bold cyan]Pilih metode (nomor): [/bold cyan]")
                 if input_method == "1":
                     if overwrite_amount == -1:
-                        print(f"Pastikan sisa balance KURANG DARI Rp{payment_items[-1]['item_price']}!!!")
-                        balance_answer = input("Apakah anda yakin ingin melanjutkan pembelian? (y/n): ")
+                        print_warning(f"Pastikan sisa balance KURANG DARI Rp{payment_items[-1]['item_price']}!!!")
+                        balance_answer = console.input("Apakah anda yakin ingin melanjutkan pembelian? (y/n): ")
                         if balance_answer.lower() != "y":
-                            print("Pembelian dibatalkan oleh user.")
+                            print_warning("Pembelian dibatalkan oleh user.")
                             pause()
                             in_payment_menu = False
                             continue
@@ -185,7 +198,7 @@ def show_hot_menu2():
                         token_confirmation_idx=token_confirmation_idx,
                         amount_idx=amount_idx,
                     )
-                    input("Tekan enter untuk kembali...")
+                    console.input("[dim]Tekan [bold cyan]Enter[/bold cyan] untuk kembali...[/dim]")
                     in_payment_menu = False
                     in_bookmark_menu = False
                 elif input_method == "2":
@@ -199,7 +212,7 @@ def show_hot_menu2():
                         token_confirmation_idx,
                         amount_idx,
                     )
-                    input("Tekan enter untuk kembali...")
+                    console.input("[dim]Tekan [bold cyan]Enter[/bold cyan] untuk kembali...[/dim]")
                     in_payment_menu = False
                     in_bookmark_menu = False
                 elif input_method == "3":
@@ -214,17 +227,17 @@ def show_hot_menu2():
                         amount_idx,
                     )
 
-                    input("Tekan enter untuk kembali...")
+                    console.input("[dim]Tekan [bold cyan]Enter[/bold cyan] untuk kembali...[/dim]")
                     in_payment_menu = False
                     in_bookmark_menu = False
                 elif input_method == "00":
                     in_payment_menu = False
                     continue
                 else:
-                    print("Metode tidak valid. Silahkan coba lagi.")
+                    print_error("Metode tidak valid. Silahkan coba lagi.")
                     pause()
                     continue
         else:
-            print("Input tidak valid. Silahkan coba lagi.")
+            print_error("Input tidak valid. Silahkan coba lagi.")
             pause()
             continue

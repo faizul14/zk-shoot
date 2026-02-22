@@ -1,12 +1,17 @@
 import os
-import requests # Diperlukan untuk memanggil API token
+import requests
 import sys, json
 from datetime import datetime
 
-# --- Awal dari kode asli Anda ---
 from app.service.git import check_for_updates
 
 from app.menus.util import clear_screen, pause
+from app.menus.ui import console, print_info, print_error, print_success, print_warning, make_table, print_rule
+from rich.panel import Panel
+from rich.text import Text
+from rich.columns import Columns
+from rich.table import Table
+from rich import box
 from app.client.engsel import (
     get_balance,
     get_package,
@@ -32,33 +37,68 @@ WIDTH = 55
 
 def show_main_menu(profile):
     clear_screen()
-    print("=" * WIDTH)
     expired_at_dt = datetime.fromtimestamp(profile["balance_expired_at"]).strftime("%Y-%m-%d")
-    print(f"Nomor: {profile['number']} | Type: {profile['subscription_type']}".center(WIDTH))
-    print(f"Pulsa: Rp {profile['balance']} | Aktif sampai: {expired_at_dt}".center(WIDTH))
-    print(f"{profile['point_info']}".center(WIDTH))
-    print("=" * WIDTH)
-    print("Menu:")
-    print("1. Login/Ganti akun")
-    print("2. Lihat Paket Saya")
-    print("3. Beli Paket 🔥 HOT 🔥")
-    print("4. Beli Paket 🔥 HOT-2 🔥")
-    print("5. Beli Paket Berdasarkan Option Code")
-    print("6. Beli Paket Berdasarkan Family Code")
-    # print("7. Beli Semua Paket di Family Code (loop)")
-    # print("8. Riwayat Transaksi")
-    # print("9. Family Plan/Akrab Organizer")
-    # print("10. [WIP] Circle")
-    # print("11. Store Segments")
-    # print("12. Store Family List")
-    # print("13. Store Packages")
-    # print("14. Redemables")
-    print("R. Register")
-    print("N. Notifikasi")
-    print("V. Validate msisdn")
-    print("00. Bookmark Paket")
-    print("99. Tutup aplikasi")
-    print("-------------------------------------------------------")
+
+    # ── Profile Panel ─────────────────────────────────────────────
+    grid = Table.grid(padding=(0, 1), expand=True)
+    grid.add_column(justify="center", width=3) # Icon
+    grid.add_column(justify="left")            # Value 1
+    grid.add_column(justify="center", width=2) # │
+    grid.add_column(justify="left")            # Value 2
+
+    grid.add_row(
+        "📱", 
+        f"[bold cyan]{profile['number']}[/]", 
+        "[dim white]│[/]", 
+        f"[bold yellow]{profile['subscription_type']}[/]"
+    )
+    grid.add_row(
+        "💰", 
+        f"[dim white]Pulsa:[/] [bold green]Rp {profile['balance']}[/]", 
+        "[dim white]│[/]", 
+        f"[dim white]Aktif:[/] [bold white]{expired_at_dt}[/]"
+    )
+    
+    p_info = profile['point_info'].split('|')
+    p_left = p_info[0].strip() if len(p_info) > 0 else profile['point_info']
+    p_right = p_info[1].strip() if len(p_info) > 1 else ""
+    
+    grid.add_row(
+        "⭐", 
+        f"[bold magenta]{p_left}[/]", 
+        "[dim white]│[/]" if p_right else "", 
+        f"[bold magenta]{p_right}[/]"
+    )
+
+    console.print(Panel(grid, title="[bold cyan]Dor MyXL[/bold cyan]", border_style="cyan", expand=False, width=62))
+
+    # ── Menu Table ────────────────────────────────────────────────
+    left_items = [
+        ("1",  "Login / Ganti Akun"),
+        ("2",  "Lihat Paket Saya"),
+        ("3",  "🔥 Beli Paket HOT"),
+        ("4",  "🔥 Beli Paket HOT-2"),
+        ("5",  "Beli via Option Code"),
+        ("6",  "Beli via Family Code"),
+    ]
+    right_items = [
+        ("00", "Bookmark Paket"),
+        ("R",  "Register"),
+        ("N",  "Notifikasi"),
+        ("V",  "Validate MSISDN"),
+        ("99", "[bold red]Tutup Aplikasi[/bold red]"),
+    ]
+
+    def build_col(items):
+        t = Table(box=box.SIMPLE, show_header=False, padding=(0, 1),
+                  border_style="cyan", expand=False)
+        t.add_column("k", style="bold cyan", justify="right",  no_wrap=True)
+        t.add_column("v", style="white",      justify="left")
+        for k, v in items:
+            t.add_row(f"{k}.", v)
+        return t
+
+    console.print(Columns([build_col(left_items), build_col(right_items)], equal=False, expand=False))
 
 show_menu = True
 
@@ -93,7 +133,7 @@ def run_xl_app():
 
             show_main_menu(profile)
 
-            choice = input("Pilih menu: ")
+            choice = console.input("\n[bold cyan]Pilih menu: [/bold cyan]")
             # If T
             if choice.lower() == "t":
                 pause()
@@ -102,7 +142,7 @@ def run_xl_app():
                 if selected_user_number:
                     AuthInstance.set_active_user(selected_user_number)
                 else:
-                    print("No user selected or failed to load user.")
+                    print_error("Tidak ada akun yang dipilih atau gagal memuat akun.")
                 continue
             elif choice == "2":
                 fetch_my_packages()
@@ -181,7 +221,7 @@ def run_xl_app():
             elif choice == "00":
                 show_bookmark_menu()
             elif choice == "99":
-                print("Exiting the application.")
+                print_info("Sampai jumpa! 👋")
                 sys.exit(0)
             elif choice.lower() == "r":
                 msisdn = input("Enter msisdn (628xxxx): ")
@@ -210,7 +250,7 @@ def run_xl_app():
             elif choice == "s":
                 enter_sentry_mode()
             else:
-                print("Invalid choice. Please try again.")
+                print_error("Pilihan tidak valid. Coba lagi.")
                 pause()
         else:
             # Not logged in
@@ -218,7 +258,7 @@ def run_xl_app():
             if selected_user_number:
                 AuthInstance.set_active_user(selected_user_number)
             else:
-                print("No user selected or failed to load user.")
+                print_error("Tidak ada akun yang dipilih atau gagal memuat akun.")
 # --- Akhir dari kode asli Anda ---
 
 
@@ -238,49 +278,47 @@ def verify_api_token():
         with open(TOKEN_FILE_NAME, 'r') as f:
             token = f.read().strip()
     except FileNotFoundError:
-        print(f"File {TOKEN_FILE_NAME} tidak ditemukan. Harap tambahkan token.")
+        print_error(f"File {TOKEN_FILE_NAME} tidak ditemukan. Harap tambahkan token.")
         return False
     except Exception as e:
-        print(f"Gagal membaca file {TOKEN_FILE_NAME}: {e}")
+        print_error(f"Gagal membaca file {TOKEN_FILE_NAME}: {e}")
         return False
     
     if not token:
-        print(f"Token dalam {TOKEN_FILE_NAME} kosong. Harap tambahkan token.")
+        print_error(f"Token dalam {TOKEN_FILE_NAME} kosong. Harap tambahkan token.")
         return False
 
-    print("Memverifikasi token...")
+    print_info("Memverifikasi token...")
     try:
         response = requests.post(TOKEN_API_URL, json={"token": token})
         
         if response.status_code == 200:
             data = response.json()
             if data.get("isactive"):
-                print("Verifikasi token berhasil. Token aktif.")
+                print_success("Verifikasi token berhasil. Token aktif.")
                 return True
             else:
-                # Ini adalah kasus 200 OK tapi isactive: false, yang seharusnya tidak terjadi
-                # berdasarkan API doc (seharusnya 401), tapi kita tangani untuk keamanan.
-                print("Token valid tetapi tidak aktif.")
+                print_warning("Token valid tetapi tidak aktif.")
                 return False
 
         elif response.status_code == 401:
-            print("Token ditemukan tapi tidak aktif (deactivated).")
+            print_error("Token ditemukan tapi tidak aktif (deactivated).")
             return False
         elif response.status_code == 404:
-            print("Token tidak ditemukan atau telah dicabut (revoked).")
+            print_error("Token tidak ditemukan atau telah dicabut (revoked).")
             return False
         elif response.status_code == 400:
-            print("Permintaan buruk (Bad Request). Token mungkin kosong atau format salah.")
+            print_error("Permintaan buruk (Bad Request). Token mungkin kosong atau format salah.")
             return False
         else:
-            print(f"Error tidak diketahui saat verifikasi token. Status: {response.status_code}")
+            print_error(f"Error tidak diketahui saat verifikasi token. Status: {response.status_code}")
             return False
 
     except requests.exceptions.ConnectionError:
-        print("Koneksi ke server token gagal. Pastikan server token berjalan.")
+        print_error("Koneksi ke server token gagal. Pastikan server token berjalan.")
         return False
     except Exception as e:
-        print(f"Terjadi error saat memverifikasi token: {e}")
+        print_error(f"Terjadi error saat memverifikasi token: {e}")
         return False
 
 def add_new_token():
@@ -289,17 +327,15 @@ def add_new_token():
     """
     new_token = input("Masukkan token API baru Anda: ").strip()
     if not new_token:
-        print("Token tidak boleh kosong.")
+        print_error("Token tidak boleh kosong.")
         return
 
     try:
         with open(TOKEN_FILE_NAME, 'w') as f:
             f.write(new_token)
-        
-        print(f"Token baru telah disimpan di {TOKEN_FILE_NAME}")
-        
+        print_success(f"Token baru telah disimpan di {TOKEN_FILE_NAME}")
     except Exception as e:
-        print(f"Gagal menyimpan token ke file {TOKEN_FILE_NAME}: {e}")
+        print_error(f"Gagal menyimpan token ke file {TOKEN_FILE_NAME}: {e}")
 
 def show_token_menu():
     """
@@ -307,35 +343,37 @@ def show_token_menu():
     """
     while True:
         clear_screen()
-        print("=" * WIDTH)
-        print("Manajemen Token API".center(WIDTH))
-        print("=" * WIDTH)
-        print("Token API Anda tidak valid atau tidak aktif atau sudah mencapai limit transaksi")
-        print("\nMenu:")
-        print("1. Tambah / Ganti Token")
-        print("2. Coba Lanjutkan (setelah menambah token)")
-        print("3. Keluar")
-        print("-" * WIDTH)
+        console.print(Panel(
+            "[bold red]Token API Anda tidak valid, tidak aktif, atau sudah mencapai limit transaksi.[/bold red]",
+            title="[bold red]⚠ Manajemen Token API[/bold red]",
+            border_style="red",
+            expand=False,
+            width=62,
+        ))
+        console.print("[bold cyan]1.[/bold cyan] Tambah / Ganti Token")
+        console.print("[bold cyan]2.[/bold cyan] Coba Lanjutkan (setelah menambah token)")
+        console.print("[bold red]3.[/bold red] Keluar")
+        print_rule()
         
-        choice = input("Pilih menu: ")
+        choice = console.input("[bold cyan]Pilih menu: [/bold cyan]")
         
         if choice == "1":
             add_new_token()
             pause()
         elif choice == "2":
             if verify_api_token():
-                print("Token berhasil diverifikasi. Melanjutkan ke aplikasi...")
+                print_success("Token berhasil diverifikasi. Melanjutkan ke aplikasi...")
                 pause()
-                run_xl_app() # Panggil aplikasi utama
-                break # Keluar dari loop token menu
+                run_xl_app()
+                break
             else:
-                print("Token masih tidak valid.")
+                print_error("Token masih tidak valid.")
                 pause()
         elif choice == "3":
-            print("Keluar dari aplikasi.")
+            print_info("Keluar dari aplikasi.")
             sys.exit(0)
         else:
-            print("Pilihan tidak valid.")
+            print_error("Pilihan tidak valid.")
             pause()
 
 def main():
@@ -344,22 +382,20 @@ def main():
     Mengecek update, lalu memverifikasi token sebelum menjalankan aplikasi utama.
     """
     try:
-        print("Checking for updates...")
+        print_info("Memeriksa pembaruan...")
         need_update = check_for_updates()
         if need_update:
             pause()
         
-        # Verifikasi token di sini
         if verify_api_token():
-            run_xl_app() # Token valid, jalankan aplikasi XL
+            run_xl_app()
         else:
-            show_token_menu() # Token tidak valid, tampilkan menu token
+            show_token_menu()
 
     except KeyboardInterrupt:
-        print("\nExiting the application.")
+        console.print("\n[bold red]Aplikasi ditutup.[/bold red]")
     except Exception as e:
-       print(f"An unexpected error occurred: {e}")
-       # Anda bisa menambahkan logging error yang lebih detail di sini
+        print_error(f"Terjadi error yang tidak terduga: {e}")
 
 # --- Akhir dari Logika Token Baru ---
 

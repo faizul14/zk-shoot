@@ -6,6 +6,12 @@ load_dotenv()
 import sys, json
 from datetime import datetime
 from app.menus.util import clear_screen, pause
+from app.menus.ui import console, print_info, print_error, print_success, make_menu_table, print_rule
+from rich.panel import Panel
+from rich.text import Text
+from rich.columns import Columns
+from rich.table import Table
+from rich import box
 from app.client.engsel import (
     get_balance,
     get_package,
@@ -31,33 +37,76 @@ WIDTH = 55
 
 def show_main_menu(profile):
     clear_screen()
-    print("=" * WIDTH)
     expired_at_dt = datetime.fromtimestamp(profile["balance_expired_at"]).strftime("%Y-%m-%d")
-    print(f"Nomor: {profile['number']} | Type: {profile['subscription_type']}".center(WIDTH))
-    print(f"Pulsa: Rp {profile['balance']} | Aktif sampai: {expired_at_dt}".center(WIDTH))
-    print(f"{profile['point_info']}".center(WIDTH))
-    print("=" * WIDTH)
-    print("Menu:")
-    print("1. Login/Ganti akun")
-    print("2. Lihat Paket Saya")
-    print("3. Beli Paket 🔥 HOT 🔥")
-    print("4. Beli Paket 🔥 HOT-2 🔥")
-    print("5. Beli Paket Berdasarkan Option Code")
-    print("6. Beli Paket Berdasarkan Family Code")
-    print("7. Beli Semua Paket di Family Code (loop)")
-    print("8. Riwayat Transaksi")
-    print("9. Family Plan/Akrab Organizer")
-    print("10. [WIP] Circle")
-    print("11. Store Segments")
-    print("12. Store Family List")
-    print("13. Store Packages")
-    print("14. Redemables")
-    print("R. Register")
-    print("N. Notifikasi")
-    print("V. Validate msisdn")
-    print("00. Bookmark Paket")
-    print("99. Tutup aplikasi")
-    print("-------------------------------------------------------")
+
+    # ── Profile Panel ────────────────────────────────────────────
+    grid = Table.grid(padding=(0, 1), expand=True)
+    grid.add_column(justify="center", width=3) # Icon
+    grid.add_column(justify="left")            # Value 1
+    grid.add_column(justify="center", width=2) # │
+    grid.add_column(justify="left")            # Value 2
+
+    grid.add_row(
+        "📱", 
+        f"[bold cyan]{profile['number']}[/]", 
+        "[dim white]│[/]", 
+        f"[bold yellow]{profile['subscription_type']}[/]"
+    )
+    grid.add_row(
+        "💰", 
+        f"[dim white]Pulsa:[/] [bold green]Rp {profile['balance']}[/]", 
+        "[dim white]│[/]", 
+        f"[dim white]Aktif:[/] [bold white]{expired_at_dt}[/]"
+    )
+    
+    p_info = profile['point_info'].split('|')
+    p_left = p_info[0].strip() if len(p_info) > 0 else profile['point_info']
+    p_right = p_info[1].strip() if len(p_info) > 1 else ""
+    
+    grid.add_row(
+        "⭐", 
+        f"[bold magenta]{p_left}[/]", 
+        "[dim white]│[/]" if p_right else "", 
+        f"[bold magenta]{p_right}[/]"
+    )
+
+    console.print(Panel(grid, title="[bold cyan]Dor MyXL[/bold cyan]", border_style="cyan", expand=False, width=62))
+
+    # ── Menu Table ───────────────────────────────────────────────
+    left_items = [
+        ("1",  "Login / Ganti Akun"),
+        ("2",  "Lihat Paket Saya"),
+        ("3",  "🔥 Beli Paket HOT"),
+        ("4",  "🔥 Beli Paket HOT-2"),
+        ("5",  "Beli via Option Code"),
+        ("6",  "Beli via Family Code"),
+        ("7",  "Beli Semua (loop)"),
+        ("8",  "Riwayat Transaksi"),
+    ]
+    right_items = [
+        ("9",   "Family Plan / Akrab"),
+        ("10",  "[WIP] Circle"),
+        ("11",  "Store Segments"),
+        ("12",  "Store Family List"),
+        ("13",  "Store Packages"),
+        ("14",  "Redeemables"),
+        ("00",  "Bookmark Paket"),
+        ("R",   "Register"),
+        ("N",   "Notifikasi"),
+        ("V",   "Validate MSISDN"),
+        ("99",  "[bold red]Tutup Aplikasi[/bold red]"),
+    ]
+
+    def build_col(items):
+        t = Table(box=box.SIMPLE, show_header=False, padding=(0, 1),
+                  border_style="cyan", expand=False)
+        t.add_column("k", style="bold cyan",  justify="right",  no_wrap=True)
+        t.add_column("v", style="white",       justify="left")
+        for k, v in items:
+            t.add_row(f"{k}.", v)
+        return t
+
+    console.print(Columns([build_col(left_items), build_col(right_items)], equal=False, expand=False))
 
 show_menu = True
 def main():
@@ -175,7 +224,7 @@ def main():
             elif choice == "00":
                 show_bookmark_menu()
             elif choice == "99":
-                print("Exiting the application.")
+                print_info("Sampai jumpa! 👋")
                 sys.exit(0)
             elif choice.lower() == "r":
                 msisdn = input("Enter msisdn (628xxxx): ")
@@ -204,7 +253,7 @@ def main():
             elif choice == "s":
                 enter_sentry_mode()
             else:
-                print("Invalid choice. Please try again.")
+                print_error("Pilihan tidak valid. Coba lagi.")
                 pause()
         else:
             # Not logged in
@@ -212,17 +261,17 @@ def main():
             if selected_user_number:
                 AuthInstance.set_active_user(selected_user_number)
             else:
-                print("No user selected or failed to load user.")
+                print_error("Tidak ada akun yang dipilih atau gagal memuat akun.")
 
 if __name__ == "__main__":
     try:
-        print("Checking for updates...")
+        print_info("Memeriksa pembaruan...")
         need_update = check_for_updates()
         if need_update:
             pause()
 
         main()
     except KeyboardInterrupt:
-        print("\nExiting the application.")
+        console.print("\n[bold red]Aplikasi ditutup.[/bold red]")
     # except Exception as e:
     #     print(f"An error occurred: {e}")

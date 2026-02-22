@@ -8,6 +8,7 @@ from app.client.engsel2 import unsubscribe
 from app.service.bookmark import BookmarkInstance
 from app.client.purchase import settlement_bounty, settlement_loyalty, bounty_allotment
 from app.menus.util import clear_screen, pause, display_html
+from app.menus.ui import console, print_success, print_error, print_warning, print_info, print_rule, make_table
 from app.client.qris import show_qris_payment
 from app.client.ewallet import show_multipayment
 from app.client.balance import settlement_balance
@@ -21,13 +22,11 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
     subscription_type = active_user.get("subscription_type", "")
     
     clear_screen()
-    print("-------------------------------------------------------")
-    print("Detail Paket")
-    print("-------------------------------------------------------")
+    console.print("\n[bold cyan]📦 Detail Paket[/bold cyan]")
+    print_rule()
     package = get_package(api_key, tokens, package_option_code)
-    # print(f"[SPD-202]:\n{json.dumps(package, indent=1)}")
     if not package:
-        print("Failed to load package details.")
+        print_error("Failed to load package details.")
         pause()
         return False
 
@@ -62,50 +61,54 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
         )
     ]
     
-    print("-------------------------------------------------------")
-    print(f"Nama: {title}")
-    print(f"Harga: Rp {price}")
-    print(f"Payment For: {payment_for}")
-    print(f"Masa Aktif: {validity}")
-    print(f"Point: {package['package_option']['point']}")
-    print(f"Plan Type: {package['package_family']['plan_type']}")
-    print("-------------------------------------------------------")
-    print(f"Family Code: {family_code}")
-    print(f"Parent Code (for addon/dummy): {parent_code}")
-    print("-------------------------------------------------------")
+    print_rule()
+    console.print(f"[bold white]Nama        :[/bold white] [bold cyan]{title}[/bold cyan]")
+    console.print(f"[bold white]Harga       :[/bold white] [bold green]Rp {price}[/bold green]")
+    console.print(f"[bold white]Payment For :[/bold white] {payment_for}")
+    console.print(f"[bold white]Masa Aktif  :[/bold white] {validity}")
+    console.print(f"[bold white]Point       :[/bold white] {package['package_option']['point']}")
+    console.print(f"[bold white]Plan Type   :[/bold white] {package['package_family']['plan_type']}")
+    print_rule()
+    console.print(f"[dim]Family Code : {family_code}[/dim]")
+    console.print(f"[dim]Parent Code : {parent_code}[/dim]")
+    print_rule()
     benefits = package["package_option"]["benefits"]
     if benefits and isinstance(benefits, list):
-        print("Benefits:")
+        ben_table = make_table(
+            ("Nama",      "white",       "left"),
+            ("Item ID",   "dim white",   "left"),
+            ("Tipe",      "yellow",      "center"),
+            ("Total",     "bold green",  "right"),
+        )
         for benefit in benefits:
-            print("-------------------------------------------------------")
-            print(f" Name: {benefit['name']}")
-            print(f"  Item id: {benefit['item_id']}")
             data_type = benefit['data_type']
             if data_type == "VOICE" and benefit['total'] > 0:
-                print(f"  Total: {benefit['total']/60} menit")
+                total_str = f"{benefit['total']/60:.1f} menit"
             elif data_type == "TEXT" and benefit['total'] > 0:
-                print(f"  Total: {benefit['total']} SMS")
+                total_str = f"{benefit['total']} SMS"
             elif data_type == "DATA" and benefit['total'] > 0:
-                if benefit['total'] > 0:
-                    quota = int(benefit['total'])
-                    # It is in byte, make it in GB
-                    if quota >= 1_000_000_000:
-                        quota_gb = quota / (1024 ** 3)
-                        print(f"  Quota: {quota_gb:.2f} GB")
-                    elif quota >= 1_000_000:
-                        quota_mb = quota / (1024 ** 2)
-                        print(f"  Quota: {quota_mb:.2f} MB")
-                    elif quota >= 1_000:
-                        quota_kb = quota / 1024
-                        print(f"  Quota: {quota_kb:.2f} KB")
-                    else:
-                        print(f"  Total: {quota}")
-            elif data_type not in ["DATA", "VOICE", "TEXT"]:
-                print(f"  Total: {benefit['total']} ({data_type})")
-            
+                quota = int(benefit['total'])
+                if quota >= 1_000_000_000:
+                    total_str = f"{quota / (1024**3):.2f} GB"
+                elif quota >= 1_000_000:
+                    total_str = f"{quota / (1024**2):.2f} MB"
+                elif quota >= 1_000:
+                    total_str = f"{quota / 1024:.2f} KB"
+                else:
+                    total_str = str(quota)
+            else:
+                total_str = f"{benefit['total']} ({data_type})"
             if benefit["is_unlimited"]:
-                print("  Unlimited: Yes")
-    print("-------------------------------------------------------")
+                total_str = "Unlimited ♾"
+            ben_table.add_row(
+                benefit['name'],
+                benefit['item_id'],
+                data_type,
+                total_str,
+            )
+        console.print("[bold white]Benefits:[/bold white]")
+        console.print(ben_table)
+    print_rule()
     addons = get_addons(api_key, tokens, package_option_code)
     
 
@@ -137,38 +140,36 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
     #         )
     #     )
 
-    print(f"Addons:\n{json.dumps(addons, indent=2)}")
-    print("-------------------------------------------------------")
-    print(f"SnK MyXL:\n{detail}")
-    print("-------------------------------------------------------")
+    console.print(f"[dim]Addons:[/dim]\n{json.dumps(addons, indent=2)}")
+    print_rule()
+    console.print(f"[dim]SnK MyXL:[/dim]\n{detail}")
+    print_rule()
     
     in_package_detail_menu = True
     while in_package_detail_menu:
-        print("Options:")
-        print("1. Beli dengan Pulsa")
-        print("2. Beli dengan E-Wallet")
-        print("3. Bayar dengan QRIS")
-        print("4. Pulsa + Decoy")
-        print("5. Pulsa + Decoy V2")
-        print("6. QRIS + Decoy (+1K)")
-        print("7. QRIS + Decoy V2")
-        print("8. Pulsa N kali")
-        # print("9. Debug Share Package")
+        console.print("\n[bold cyan]⚙ Options:[/bold cyan]")
+        console.print("[bold cyan]1.[/bold cyan] Beli dengan Pulsa")
+        console.print("[bold cyan]2.[/bold cyan] Beli dengan E-Wallet")
+        console.print("[bold cyan]3.[/bold cyan] Bayar dengan QRIS")
+        console.print("[bold cyan]4.[/bold cyan] Pulsa + Decoy")
+        console.print("[bold cyan]5.[/bold cyan] Pulsa + Decoy V2")
+        console.print("[bold cyan]6.[/bold cyan] QRIS + Decoy (+1K)")
+        console.print("[bold cyan]7.[/bold cyan] QRIS + Decoy V2")
+        console.print("[bold cyan]8.[/bold cyan] Pulsa N kali")
 
-        # Sometimes payment_for is empty, so we set default to BUY_PACKAGE
         if payment_for == "":
             payment_for = "BUY_PACKAGE"
         
         if payment_for == "REDEEM_VOUCHER":
-            print("B. Ambil sebagai bonus (jika tersedia)")
-            print("BA. Kirim bonus (jika tersedia)")
-            print("L. Beli dengan Poin (jika tersedia)")
+            console.print("[bold cyan]B.[/bold cyan] Ambil sebagai bonus (jika tersedia)")
+            console.print("[bold cyan]BA.[/bold cyan] Kirim bonus (jika tersedia)")
+            console.print("[bold cyan]L.[/bold cyan] Beli dengan Poin (jika tersedia)")
         
         if option_order != -1:
-            print("0. Tambah ke Bookmark")
-        print("00. Kembali ke daftar paket")
+            console.print("[bold cyan]0.[/bold cyan] Tambah ke Bookmark")
+        console.print("[bold cyan]00.[/bold cyan] Kembali ke daftar paket")
 
-        choice = input("Pilihan: ")
+        choice = console.input("\n[bold cyan]Pilihan: [/bold cyan]") 
         if choice == "00":
             return False
         elif choice == "0" and option_order != -1:
@@ -182,9 +183,9 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                 order=option_order,
             )
             if success:
-                print("Paket berhasil ditambahkan ke bookmark.")
+                print_success("Paket berhasil ditambahkan ke bookmark.")
             else:
-                print("Paket sudah ada di bookmark.")
+                print_warning("Paket sudah ada di bookmark.")
             pause()
             continue
         
@@ -260,7 +261,7 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                     error_msg_arr = error_msg.split("=")
                     valid_amount = int(error_msg_arr[1].strip())
                     
-                    print(f"Adjusted total amount to: {valid_amount}")
+                    print_info(f"Adjusted total amount to: {valid_amount}")
                     res = settlement_balance(
                         api_key,
                         tokens,
@@ -270,9 +271,9 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                         overwrite_amount=valid_amount,
                     )
                     if res and res.get("status", "") == "SUCCESS":
-                        print("Purchase successful!")
+                        print_success("Purchase successful!")
             else:
-                print("Purchase successful!")
+                print_success("Purchase successful!")
             pause()
             return True
         elif choice == '5':
@@ -286,7 +287,7 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
             )
             
             if not decoy_package_detail:
-                print("Failed to load decoy package details.")
+                print_error("Failed to load decoy package details.")
                 pause()
                 return False
 
@@ -329,9 +330,9 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                         token_confirmation_idx=-1
                     )
                     if res and res.get("status", "") == "SUCCESS":
-                        print("Purchase successful!")
+                        print_success("Purchase successful!")
             else:
-                print("Purchase successful!")
+                print_success("Purchase successful!")
             pause()
             return True
         elif choice == '6':
@@ -360,11 +361,11 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                 )
             )
             
-            print("-"*55)
-            print(f"Harga Paket Utama: Rp {price}")
-            print(f"Harga Paket Decoy: Rp {decoy_package_detail['package_option']['price']}")
-            print("Silahkan sesuaikan amount (trial & error, 0 = malformed)")
-            print("-"*55)
+            print_rule()
+            print_info(f"Harga Paket Utama: Rp {price}")
+            print_info(f"Harga Paket Decoy: Rp {decoy_package_detail['package_option']['price']}")
+            print_warning("Silahkan sesuaikan amount (trial & error, 0 = malformed)")
+            print_rule()
 
             show_qris_payment(
                 api_key,
@@ -403,11 +404,11 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                 )
             )
             
-            print("-"*55)
-            print(f"Harga Paket Utama: Rp {price}")
-            print(f"Harga Paket Decoy: Rp {decoy_package_detail['package_option']['price']}")
-            print("Silahkan sesuaikan amount (trial & error, 0 = malformed)")
-            print("-"*55)
+            print_rule()
+            print_info(f"Harga Paket Utama: Rp {price}")
+            print_info(f"Harga Paket Decoy: Rp {decoy_package_detail['package_option']['price']}")
+            print_warning("Silahkan sesuaikan amount (trial & error, 0 = malformed)")
+            print_rule()
 
             show_qris_payment(
                 api_key,
@@ -448,7 +449,7 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
         elif choice == '9':
             pin = input("Enter PIN: ")
             if len(pin) != 6:
-                print("PIN too short.")
+                print_error("PIN too short.")
                 pause()
                 continue
             auth_code = get_auth_code(
@@ -458,7 +459,7 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
             )
             
             if not auth_code:
-                print("Failed to get auth_code")
+                print_error("Failed to get auth_code")
                 continue
             
             target_msisdn = input("Target number start with 62:")
@@ -467,7 +468,7 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
             
             response = requests.get(url, timeout=30)
             if response.status_code != 200:
-                print("Gagal mengambil data decoy package.")
+                print_error("Gagal mengambil data decoy package.")
                 pause()
                 return None
             
@@ -512,7 +513,7 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
                     error_msg_arr = error_msg.split("=")
                     valid_amount = int(error_msg_arr[1].strip())
                     
-                    print(f"Adjusted total amount to: {valid_amount}")
+                    print_info(f"Adjusted total amount to: {valid_amount}")
                     res = show_qris_payment(
                         api_key,
                         tokens,
@@ -568,7 +569,7 @@ def show_package_details(api_key, tokens, package_option_code, is_enterprise, op
             input("Silahkan lakukan pembayaran & cek hasil pembelian di aplikasi MyXL. Tekan Enter untuk kembali.")
             return True
         else:
-            print("Purchase cancelled.")
+            print_warning("Purchase cancelled.")
             return False
     pause()
     sys.exit(0)
@@ -581,7 +582,7 @@ def get_packages_by_family(
     api_key = AuthInstance.api_key
     tokens = AuthInstance.get_active_tokens()
     if not tokens:
-        print("No active user tokens found.")
+        print_error("No active user tokens found.")
         pause()
         return None
     
@@ -596,7 +597,7 @@ def get_packages_by_family(
     )
     
     if not data:
-        print("Failed to load family data.")
+        print_error("Failed to load family data.")
         pause()
         return None
     price_currency = "Rp"
@@ -607,16 +608,12 @@ def get_packages_by_family(
     in_package_menu = True
     while in_package_menu:
         clear_screen()
-        # print(f"[GPBF-283]:\n{json.dumps(data, indent=2)}")
-        print("-------------------------------------------------------")        
-        print(f"Family Name: {data['package_family']['name']}")
-        print(f"Family Code: {family_code}")
-        print(f"Family Type: {data['package_family']['package_family_type']}")
-        # print(f"Enterprise: {'Yes' if is_enterprise else 'No'}")
-        print(f"Variant Count: {len(data['package_variants'])}")
-        print("-------------------------------------------------------")
-        print("Paket Tersedia")
-        print("-------------------------------------------------------")
+        console.print("\n[bold cyan]📋 Family Packages[/bold cyan]")
+        print_rule()
+        console.print(f"[bold white]Family :[/bold white] [bold cyan]{data['package_family']['name']}[/bold cyan]  [dim]({family_code})[/dim]")
+        console.print(f"[bold white]Type   :[/bold white] {data['package_family']['package_family_type']}")
+        console.print(f"[bold white]Variant:[/bold white] {len(data['package_variants'])}")
+        print_rule()
         
         package_variants = data["package_variants"]
         
@@ -626,8 +623,13 @@ def get_packages_by_family(
         for variant in package_variants:
             variant_name = variant["name"]
             variant_code = variant["package_variant_code"]
-            print(f" Variant {variant_number}: {variant_name}")
-            print(f" Code: {variant_code}")
+            variant_table = make_table(
+                ("No",    "bold cyan",  "right"),
+                ("Nama",  "white",      "left"),
+                ("Harga", "bold green", "right"),
+                ("Kode",  "dim white",  "left"),
+                title=f"Variant {variant_number}: {variant_name} ({variant_code})",
+            )
             for option in variant["package_options"]:
                 option_name = option["name"]
                 
@@ -639,31 +641,31 @@ def get_packages_by_family(
                     "code": option["package_option_code"],
                     "option_order": option["order"]
                 })
-                                
-                print(f"   {option_number}. {option_name} - {price_currency} {option['price']}")
-                
+                variant_table.add_row(
+                    str(option_number),
+                    option_name,
+                    f"{price_currency} {option['price']}",
+                    option["package_option_code"],
+                )
                 option_number += 1
-            
-            if variant_number < len(package_variants):
-                print("-------------------------------------------------------")
+            console.print(variant_table)
             variant_number += 1
-        print("-------------------------------------------------------")
-
-        print("00. Kembali ke menu utama")
-        print("-------------------------------------------------------")
-        pkg_choice = input("Pilih paket (nomor): ")
+        print_rule()
+        console.print("[bold cyan]00.[/bold cyan] Kembali ke menu utama")
+        print_rule()
+        pkg_choice = console.input("[bold cyan]Pilih paket (nomor): [/bold cyan]")
         if pkg_choice == "00":
             in_package_menu = False
             return None
         
         if isinstance(pkg_choice, str) == False or not pkg_choice.isdigit():
-            print("Input tidak valid. Silakan masukan nomor paket.")
+            print_error("Input tidak valid. Silakan masukan nomor paket.")
             continue
         
         selected_pkg = next((p for p in packages if p["number"] == int(pkg_choice)), None)
         
         if not selected_pkg:
-            print("Paket tidak ditemukan. Silakan masukan nomor yang benar.")
+            print_error("Paket tidak ditemukan. Silakan masukan nomor yang benar.")
             continue
         
         show_package_details(
@@ -696,20 +698,19 @@ def fetch_my_packages():
             "family_member_id": ""
         }
         
-        print("Fetching my packages...")
+        print_info("Fetching my packages...")
         res = send_api_request(api_key, path, payload, id_token, "POST")
         if res.get("status") != "SUCCESS":
-            print("Failed to fetch packages")
-            print("Response:", res)
+            print_error("Failed to fetch packages")
+            console.print(f"Response: {res}")
             pause()
             return None
         
         quotas = res["data"]["quotas"]
         
         clear_screen()
-        print("=======================================================")
-        print("======================My Packages======================")
-        print("=======================================================")
+        console.print("\n[bold cyan]📦 Paket Saya[/bold cyan]")
+        print_rule()
         my_packages =[]
         num = 1
         for quota in quotas:
@@ -782,10 +783,11 @@ def fetch_my_packages():
             
             num += 1
         
-        print("Input package number to view detail.")
-        print("Input del <package number> to unsubscribe from a package.")
-        print("Input 00 to return to main menu.")
-        choice = input("Choice: ")
+        print_rule()
+        console.print("[dim]Input nomor paket untuk lihat detail. "
+                      "| [bold]del <nomor>[/bold] untuk unsubscribe. "
+                      "| [bold cyan]00[/bold cyan] untuk kembali.[/dim]")
+        choice = console.input("[bold cyan]Pilihan: [/bold cyan]")
         if choice == "00":
             in_my_packages_menu = False
 
@@ -793,7 +795,7 @@ def fetch_my_packages():
         if choice.isdigit() and int(choice) > 0 and int(choice) <= len(my_packages):
             selected_pkg = next((pkg for pkg in my_packages if pkg["number"] == int(choice)), None)
             if not selected_pkg:
-                print("Paket tidak ditemukan. Silakan masukan nomor yang benar.")
+                print_error("Paket tidak ditemukan. Silakan masukan nomor yang benar.")
                 pause()
                 continue
             
@@ -808,12 +810,12 @@ def fetch_my_packages():
             del_number = int(del_parts[1])
             del_pkg = next((pkg for pkg in my_packages if pkg["number"] == del_number), None)
             if not del_pkg:
-                print("Package not found for deletion.")
+                print_error("Package not found for deletion.")
                 pause()
             
             confirm = input(f"Are you sure you want to unsubscribe from package  {del_number}. {del_pkg['name']}? (y/n): ")
             if confirm.lower() == 'y':
-                print(f"Unsubscribing from package number {del_pkg['name']}...")
+                print_info(f"Unsubscribing from package {del_pkg['name']}...")
                 success = unsubscribe(
                     api_key,
                     tokens,
@@ -822,9 +824,9 @@ def fetch_my_packages():
                     del_pkg["product_domain"]
                 )
                 if success:
-                    print("Successfully unsubscribed from the package.")
+                    print_success("Successfully unsubscribed from the package.")
                 else:
-                    print("Failed to unsubscribe from the package.")
+                    print_error("Failed to unsubscribe from the package.")
             else:
-                print("Unsubscribe cancelled.")
+                print_warning("Unsubscribe cancelled.")
             pause()

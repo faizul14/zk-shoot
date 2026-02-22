@@ -1,53 +1,52 @@
 from app.client.engsel import get_otp, submit_otp
 from app.menus.util import clear_screen, pause
+from app.menus.ui import console, print_success, print_error, print_warning, print_info, print_rule, make_table
 from app.service.auth import AuthInstance
 
 def show_login_menu():
     clear_screen()
-    print("-------------------------------------------------------")
-    print("Login ke MyXL")
-    print("-------------------------------------------------------")
-    print("1. Request OTP")
-    print("2. Submit OTP")
-    print("99. Tutup aplikasi")
-    print("-------------------------------------------------------")
-    
+    console.print("\n[bold cyan]🔑 Login ke MyXL[/bold cyan]")
+    print_rule()
+    console.print("[bold cyan]1.[/bold cyan] Request OTP")
+    console.print("[bold cyan]2.[/bold cyan] Submit OTP")
+    console.print("[bold red]99.[/bold red] Tutup aplikasi")
+    print_rule()
+
 def login_prompt(api_key: str):
     clear_screen()
-    print("-------------------------------------------------------")
-    print("Login ke MyXL")
-    print("-------------------------------------------------------")
-    print("Masukan nomor XL (Contoh 6281234567890):")
-    phone_number = input("Nomor: ")
+    console.print("\n[bold cyan]🔑 Login ke MyXL[/bold cyan]")
+    print_rule()
+    console.print("Masukan nomor XL [dim](Contoh: 6281234567890)[/dim]")
+    phone_number = console.input("[bold cyan]Nomor: [/bold cyan]")
 
     if not phone_number.startswith("628") or len(phone_number) < 10 or len(phone_number) > 14:
-        print("Nomor tidak valid. Pastikan nomor diawali dengan '628' dan memiliki panjang yang benar.")
+        print_error("Nomor tidak valid. Pastikan diawali dengan '628' dan panjang benar.")
         return None
 
     try:
         subscriber_id = get_otp(phone_number)
         if not subscriber_id:
             return None
-        print("OTP Berhasil dikirim ke nomor Anda.")
+        print_success("OTP berhasil dikirim ke nomor Anda.")
         
         try_count = 5
         while try_count > 0:
-            print(f"Sisa percobaan: {try_count}")
-            otp = input("Masukkan OTP yang telah dikirim: ")
+            console.print(f"[dim]Sisa percobaan: [bold]{try_count}[/bold][/dim]")
+            otp = console.input("[bold cyan]Masukkan OTP (6 digit): [/bold cyan]")
             if not otp.isdigit() or len(otp) != 6:
-                print("OTP tidak valid. Pastikan OTP terdiri dari 6 digit angka.")
+                print_error("OTP tidak valid. Pastikan 6 digit angka.")
                 continue
             
             tokens = submit_otp(api_key, phone_number, otp)
             if not tokens:
-                print("OTP salah. Silahkan coba lagi.")
+                print_error("OTP salah. Silahkan coba lagi.")
                 try_count -= 1
                 continue
             
-            print("Berhasil login!")
+            print_success("Berhasil login!")
             return phone_number, tokens["refresh_token"]
 
-        print("Gagal login setelah beberapa percobaan. Silahkan coba lagi nanti.")
+        print_error("Gagal login setelah beberapa percobaan. Silahkan coba lagi nanti.")
         return None, None
     except Exception as e:
         return None, None
@@ -62,11 +61,11 @@ def show_account_menu():
     add_user = False
     while in_account_menu:
         clear_screen()
-        print("-------------------------------------------------------")
+        print_rule()
         if AuthInstance.get_active_user() is None or add_user:
             number, refresh_token = login_prompt(AuthInstance.api_key)
             if not refresh_token:
-                print("Gagal menambah akun. Silahkan coba lagi.")
+                print_error("Gagal menambah akun. Silahkan coba lagi.")
                 pause()
                 continue
             
@@ -75,33 +74,37 @@ def show_account_menu():
             users = AuthInstance.refresh_tokens
             active_user = AuthInstance.get_active_user()
             
-            
             if add_user:
                 add_user = False
             continue
         
-        print("Akun Tersimpan:")
-        if not users or len(users) == 0:
-            print("Tidak ada akun tersimpan.")
+        console.print("\n[bold cyan]👥 Akun Tersimpan[/bold cyan]")
+        print_rule()
 
-        for idx, user in enumerate(users):
-            is_active = active_user and user["number"] == active_user["number"]
-            active_marker = "✅" if is_active else ""
-            
-            number = str(user.get("number", ""))
-            number = number + " " * (14 - len(number))
-            
-            sub_type = user.get("subscription_type", "").center(12)
-            print(f"{idx + 1}. {number} [{sub_type}] {active_marker}")
-        
-        print("-" * 55)
-        print("Command:")
-        print("0: Tambah Akun")
-        print("Masukan nomor urut akun untuk berganti.")
-        print("Masukan del <nomor urut> untuk menghapus akun tertentu.")
-        print("00: Kembali ke menu utama")
-        print("-" * 55)
-        input_str = input("Pilihan:")
+        if not users or len(users) == 0:
+            print_warning("Tidak ada akun tersimpan.")
+        else:
+            table = make_table(
+                ("No",     "bold cyan",  "right"),
+                ("Nomor",  "white",      "left"),
+                ("Tipe",   "yellow",     "center"),
+                ("Status", "green",      "center"),
+            )
+            for idx, user in enumerate(users):
+                is_active = active_user and user["number"] == active_user["number"]
+                status = "[bold green]✅ AKTIF[/bold green]" if is_active else "[dim]–[/dim]"
+                sub_type = user.get("subscription_type", "-")
+                table.add_row(str(idx + 1), str(user.get("number", "")), sub_type, status)
+            console.print(table)
+
+        print_rule()
+        console.print("[bold cyan]0[/bold cyan]: Tambah Akun  "
+                      "[dim]| Nomor urut: ganti akun | [/dim]"
+                      "[dim]del <no>: hapus | [/dim]"
+                      "[bold cyan]00[/bold cyan]: Kembali")
+        print_rule()
+        input_str = console.input("[bold cyan]Pilihan: [/bold cyan]")
+
         if input_str == "00":
             in_account_menu = False
             return active_user["number"] if active_user else None
@@ -118,31 +121,30 @@ def show_account_menu():
                 
                 # Prevent deleting the active user here
                 if active_user and users[del_index - 1]["number"] == active_user["number"]:
-                    print("Tidak dapat menghapus akun aktif. Silahkan ganti akun terlebih dahulu.")
+                    print_error("Tidak dapat menghapus akun aktif. Ganti akun terlebih dahulu.")
                     pause()
                     continue
                 
                 if 1 <= del_index <= len(users):
                     user_to_delete = users[del_index - 1]
-                    confirm = input(f"Yakin ingin menghapus akun {user_to_delete['number']}? (y/n): ")
+                    confirm = console.input(f"Yakin ingin menghapus akun [bold]{user_to_delete['number']}[/bold]? (y/n): ")
                     if confirm.lower() == 'y':
                         AuthInstance.remove_refresh_token(user_to_delete["number"])
-                        # AuthInstance.load_tokens()
                         users = AuthInstance.refresh_tokens
                         active_user = AuthInstance.get_active_user()
-                        print("Akun berhasil dihapus.")
+                        print_success("Akun berhasil dihapus.")
                         pause()
                     else:
-                        print("Penghapusan akun dibatalkan.")
+                        print_warning("Penghapusan akun dibatalkan.")
                         pause()
                 else:
-                    print("Nomor urut tidak valid.")
+                    print_error("Nomor urut tidak valid.")
                     pause()
             else:
-                print("Perintah tidak valid. Gunakan format: del <nomor urut>")
+                print_error("Perintah tidak valid. Gunakan format: del <nomor urut>")
                 pause()
             continue
         else:
-            print("Input tidak valid. Silahkan coba lagi.")
+            print_error("Input tidak valid. Silahkan coba lagi.")
             pause()
             continue

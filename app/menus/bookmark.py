@@ -1,6 +1,7 @@
 from app.menus.package import show_package_details
 from app.service.auth import AuthInstance
 from app.menus.util import clear_screen, pause
+from app.menus.ui import console, print_success, print_error, print_warning, print_rule, make_table
 from app.service.bookmark import BookmarkInstance
 from app.client.engsel import get_family
 
@@ -11,27 +12,40 @@ def show_bookmark_menu():
     in_bookmark_menu = True
     while in_bookmark_menu:
         clear_screen()
-        print("-------------------------------------------------------")
-        print("Bookmark Paket")
-        print("-------------------------------------------------------")
+        console.print("\n[bold cyan]🔖 Bookmark Paket[/bold cyan]")
+        print_rule()
+
         bookmarks = BookmarkInstance.get_bookmarks()
         if not bookmarks or len(bookmarks) == 0:
-            print("Tidak ada bookmark tersimpan.")
+            print_warning("Tidak ada bookmark tersimpan.")
             pause()
             return None
         
+        # Build Rich table of bookmarks
+        table = make_table(
+            ("No",      "bold cyan",  "right"),
+            ("Family",  "white",      "left"),
+            ("Variant", "dim white",  "left"),
+            ("Option",  "yellow",     "left"),
+        )
         for idx, bm in enumerate(bookmarks):
-            print(f"{idx + 1}. {bm['family_name']} - {bm['variant_name']} - {bm['option_name']}")
+            table.add_row(
+                str(idx + 1),
+                bm['family_name'],
+                bm['variant_name'],
+                bm['option_name'],
+            )
+        console.print(table)
         
-        print("00. Kembali ke menu utama")
-        print("000. Hapus Bookmark")
-        print("-------------------------------------------------------")
-        choice = input("Pilih bookmark (nomor): ")
+        console.print("[dim]00[/dim] Kembali ke menu utama  |  [dim]000[/dim] Hapus Bookmark")
+        print_rule()
+        choice = console.input("[bold cyan]Pilih bookmark (nomor): [/bold cyan]")
+
         if choice == "00":
             in_bookmark_menu = False
             return None
         elif choice == "000":
-            del_choice = input("Masukan nomor bookmark yang ingin dihapus: ")
+            del_choice = console.input("Masukan nomor bookmark yang ingin dihapus: ")
             if del_choice.isdigit() and 1 <= int(del_choice) <= len(bookmarks):
                 del_bm = bookmarks[int(del_choice) - 1]
                 BookmarkInstance.remove_bookmark(
@@ -40,8 +54,9 @@ def show_bookmark_menu():
                     del_bm["variant_name"],
                     del_bm["order"],
                 )
+                print_success("Bookmark berhasil dihapus.")
             else:
-                print("Input tidak valid. Silahkan coba lagi.")
+                print_error("Input tidak valid. Silahkan coba lagi.")
                 pause()
             continue
         if choice.isdigit() and 1 <= int(choice) <= len(bookmarks):
@@ -51,7 +66,7 @@ def show_bookmark_menu():
             
             family_data = get_family(api_key, tokens, family_code, is_enterprise)
             if not family_data:
-                print("Gagal mengambil data family.")
+                print_error("Gagal mengambil data family.")
                 pause()
                 continue
             
@@ -73,6 +88,6 @@ def show_bookmark_menu():
                 show_package_details(api_key, tokens, option_code, is_enterprise)            
             
         else:
-            print("Input tidak valid. Silahkan coba lagi.")
+            print_error("Input tidak valid. Silahkan coba lagi.")
             pause()
             continue
