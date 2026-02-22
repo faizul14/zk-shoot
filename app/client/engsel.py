@@ -158,9 +158,16 @@ def get_new_token(refresh_token: str) -> str:
 
     resp = requests.post(url, headers=headers, data=data, timeout=30)
     if resp.status_code == 400:
-        if resp.json().get("error_description") == "Session not active":
+        error_data = resp.json()
+        error_desc = error_data.get("error_description", "Unknown error")
+        error_code = error_data.get("error", "unknown_error")
+        
+        print(f"Failed to refresh token: {error_code} - {error_desc}")
+        
+        if error_desc == "Session not active":
             print("Refresh token expired. Pleas remove and re-add the account.")
-            return None
+        
+        return None
         
     resp.raise_for_status()
 
